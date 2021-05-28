@@ -29,8 +29,8 @@ impl Pendulum {
             mass: 1.0,
             radius: 100.0,
             theta: 1.0,
-            speed: 0.1,
-            momentum: 10.0,
+            speed: 0.0,
+            momentum: 0.0,
         }
     }
 
@@ -64,57 +64,34 @@ impl DoublePendulum {
     }
 
     /// https://wikimedia.org/api/rest_v1/media/math/render/svg/ea30dfe9ba779902cca5f518a71567407e4974ce
-    fn update_speed_1(&mut self) {
-        let p1 = &self.pendulum1;
+    fn update_speed(&mut self) {
+        let p1 = &mut self.pendulum1;
         let p2 = &self.pendulum2;
 
         let cos = (p1.theta - p2.theta).cos();
+        let l = p1.radius * p2.radius;
+
+        let denom = p1.mass * l * l * (16.0 - 9.0 * cos * cos);
+
         let num = 12.0 * p1.momentum - 18.0 * cos * p2.momentum;
+        p1.speed = num / denom;
 
-        let l = p1.radius;
-        let denom = p1.mass * l * l * (16.0 - 9.0 * cos * cos);
-
-        self.pendulum1.speed = num / denom;
-    }
-
-    /// https://wikimedia.org/api/rest_v1/media/math/render/svg/ea30dfe9ba779902cca5f518a71567407e4974ce
-    fn update_speed_2(&mut self) {
-        let p1 = &self.pendulum1;
-        let p2 = &self.pendulum2;
-
-        let cos = (p1.theta - p2.theta).cos();
         let num = 48.0 * p2.momentum - 18.0 * cos * p1.momentum;
-
-        let l = p1.radius;
-        let denom = p1.mass * l * l * (16.0 - 9.0 * cos * cos);
-
-        self.pendulum1.speed = num / denom;
+        self.pendulum2.speed = num / denom;
     }
 
     /// https://wikimedia.org/api/rest_v1/media/math/render/svg/d8e7f78e4cef6b9b0b46bf5f5050c72a7b1ed725
-    fn update_momentum_1(&mut self) {
+    fn update_momentum(&mut self) {
         let p1 = &self.pendulum1;
         let p2 = &self.pendulum2;
 
-        let m = p1.mass;
-        let l = p1.radius;
+        let m = p1.mass + p2.mass;
+        let l = p1.radius * p2.radius;
         let a = p1.speed * p2.speed * (p1.theta - p2.theta).sin();
-        let b = 3.0 * GRAVITY / l * p1.theta.sin();
+        let b = GRAVITY / l * p1.theta.sin();
 
-        self.pendulum1.momentum += -0.5 * m * l * l * (a + b);
-    }
-
-    /// https://wikimedia.org/api/rest_v1/media/math/render/svg/d8e7f78e4cef6b9b0b46bf5f5050c72a7b1ed725
-    fn update_momentum_2(&mut self) {
-        let p1 = &self.pendulum1;
-        let p2 = &self.pendulum2;
-
-        let m = p1.mass;
-        let l = p1.radius;
-        let a = -p1.speed * p2.speed * (p1.theta - p2.theta).sin();
-        let b = GRAVITY / l * p2.theta.sin();
-
-        self.pendulum2.momentum += -0.5 * m * l * l * (a + b);
+        self.pendulum1.momentum += -0.5 * m * l * l * (a + 3.0 * b);
+        self.pendulum2.momentum += -0.5 * m * l * l * (-a + b);
     }
 
     fn forward(&mut self) {
@@ -124,24 +101,23 @@ impl DoublePendulum {
         // L = kinetic_energy - potential_energy
 
         // https://en.wikipedia.org/wiki/Euler_method
-        // self.pendulum1.theta += step * self.momentum_der_theta_1();
-        // self.pendulum2.theta += step * self.momentum_der_theta_2();
         // self.pendulum1.theta += step;
         // self.pendulum2.theta += step;
 
-        self.update_momentum_1();
-        self.update_momentum_2();
-        self.update_speed_1();
-        self.update_speed_2();
+        self.update_momentum();
+        self.update_speed();
 
         self.pendulum1.theta += step * self.pendulum1.speed;
         self.pendulum2.theta += step * self.pendulum2.speed;
+
+        // self.pendulum1.theta %= std::f32::consts::PI / 2.0;
+        // self.pendulum2.theta %= std::f32::consts::PI / 2.0;
     }
 }
 
 impl event::EventHandler for DoublePendulum {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        const DESIRED_FPS: u32 = 60;
+        const DESIRED_FPS: u32 = 10;
 
         while timer::check_update_time(ctx, DESIRED_FPS) {
             self.forward();
@@ -149,6 +125,14 @@ impl event::EventHandler for DoublePendulum {
             let x = self.pendulum1.x() + self.pendulum2.x();
             let y = self.pendulum1.y() + self.pendulum2.y();
             let point = Point2::new(x, y);
+
+            // Push the current trail position if it's not the same as the previous one
+            if let Some(p) = self.trail.back() {
+                // ? should check if the distance is smaller than a threshold
+                if p == &point {
+                    continue;
+                }
+            }
             self.trail.push_back(point);
             if self.trail.len() > 100 {
                 self.trail.pop_front();
@@ -182,13 +166,15 @@ impl event::EventHandler for DoublePendulum {
         graphics::draw(ctx, &circle_2, (center,))?;
         graphics::draw(ctx, &circle_3, (center,))?;
 
-        let trail = Mesh::new_line(
-            ctx,
-            self.trail.make_contiguous(),
-            2.0,
-            [0.1, 0.5, 0.1, 1.0].into(),
-        )?;
-        graphics::draw(ctx, &trail, (center,))?;
+        if self.trail.len() >= 3 {
+            let trail = Mesh::new_line(
+                ctx,
+                self.trail.make_contiguous(),
+                2.0,
+                [0.1, 0.5, 0.1, 1.0].into(),
+            )?;
+            graphics::draw(ctx, &trail, (center,))?;
+        }
 
         graphics::present(ctx)?;
         Ok(())
