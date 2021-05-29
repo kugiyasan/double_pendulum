@@ -457,6 +457,7 @@ name = "double_pendulum"
 version = "0.1.0"
 dependencies = [
  "ggez",
+ "rand 0.8.3",
 ]
 
 [[package]]
