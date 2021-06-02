@@ -1,14 +1,15 @@
+mod mainstate;
 mod pendulum;
 
 use ggez::conf::{WindowMode, WindowSetup};
-use ggez::event::{self, EventHandler, KeyCode, KeyMods};
-use ggez::Context;
+use ggez::event;
+use ggez::nalgebra::Point2;
 use ggez::GameResult;
-use ggez::{graphics, timer};
-use pendulum::DoublePendulum;
+use mainstate::MainState;
+use std::env;
 
 const SCREEN_SIZE: (f32, f32) = (400.0, 400.0);
-const DESIRED_FPS: u32 = 60;
+const CENTER: (f32, f32) = (SCREEN_SIZE.0 / 2.0, SCREEN_SIZE.1 / 2.0);
 
 fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("double_pendulum", "kugiyasan")
@@ -16,55 +17,24 @@ fn main() -> GameResult {
         .window_mode(WindowMode::default().dimensions(SCREEN_SIZE.0, SCREEN_SIZE.1));
     let (ctx, event_loop) = &mut cb.build()?;
 
-    let state = &mut MainState::new()?;
+    let config = Config::new(env::args());
+    let center = Point2::new(CENTER.0, CENTER.1);
+    let state = &mut MainState::new(config.size, config.show_trail, center)?;
     event::run(ctx, event_loop, state)
 }
 
-struct MainState {
-    pendulums: Vec<DoublePendulum>,
+struct Config {
+    size: usize,
+    show_trail: bool,
 }
 
-impl MainState {
-    pub fn new() -> GameResult<Self> {
-        let s = Self {
-            pendulums: vec![DoublePendulum::new()],
-        };
-        Ok(s)
-    }
-}
+impl Config {
+    pub fn new(mut args: env::Args) -> Self {
+        args.next();
 
-impl EventHandler for MainState {
-    fn update(&mut self, ctx: &mut Context) -> GameResult {
-        while timer::check_update_time(ctx, DESIRED_FPS) {
-            for p in &mut self.pendulums {
-                p.update(ctx)?;
-            }
-        }
-        Ok(())
-    }
+        let size = args.next().unwrap_or(String::new()).parse().unwrap_or(1);
+        let show_trail = args.next().unwrap_or(String::new()) == "true";
 
-    fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
-
-        for p in &mut self.pendulums {
-            p.draw(ctx)?;
-        }
-
-        graphics::present(ctx)?;
-        Ok(())
-    }
-
-    fn key_down_event(
-        &mut self,
-        _ctx: &mut Context,
-        keycode: KeyCode,
-        _keymods: KeyMods,
-        _repeat: bool,
-    ) {
-        match keycode {
-            KeyCode::C => self.pendulums.push(DoublePendulum::new()),
-            KeyCode::R => self.pendulums = vec![DoublePendulum::new()],
-            _ => (),
-        }
+        Self { size, show_trail }
     }
 }

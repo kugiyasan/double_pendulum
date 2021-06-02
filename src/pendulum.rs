@@ -10,7 +10,6 @@ use rand::Rng;
 use std::f32::consts::PI;
 
 const GRAVITY: f32 = 1.0;
-const CENTER: (f32, f32) = (200.0, 200.0);
 
 // Useful resources:
 // https://en.wikipedia.org/wiki/Double_pendulum#Lagrangian
@@ -60,7 +59,7 @@ impl DoublePendulum {
         // Spawn the double pendulum straight in the top half with no initial speed
         let m1 = rng.gen_range(2.0..5.0);
         let m2 = rng.gen_range(2.0..5.0);
-        let radius = rng.gen_range(0.0..50.0);
+        let radius = rng.gen_range(-50.0..50.0);
         let theta = rng.gen_range(0.0..PI) + PI / 2.0;
 
         let r = rng.gen_range(0.0..=1.0);
@@ -117,6 +116,9 @@ impl DoublePendulum {
         self.p2.speed += a2;
         self.p1.theta += self.p1.speed;
         self.p2.theta += self.p2.speed;
+        // TODO Should make sure that we don't start spinning
+        // TODO or that we don't lose control and go way too fast
+        // ? Maybe a speed limit
 
         // ? Might be useful to uncomment if the pendulum spins a million times
         // ? and f32 precision starts to be noticeable
@@ -124,7 +126,7 @@ impl DoublePendulum {
         // self.p2.theta %= PI / 2.0;
     }
 
-    pub fn update_trail(&mut self) {
+    fn update_trail(&mut self) {
         let x = self.p1.x() + self.p2.x();
         let y = self.p1.y() + self.p2.y();
         let point = Point2::new(x, y);
@@ -142,14 +144,28 @@ impl DoublePendulum {
         }
     }
 
-    pub fn update(&mut self, _ctx: &mut Context) -> GameResult {
+    pub fn update(&mut self) -> GameResult {
         self.forward();
 
         self.update_trail();
         Ok(())
     }
 
-    pub fn draw(&mut self, ctx: &mut Context) -> GameResult {
+    fn draw_trail(&mut self, ctx: &mut Context, center: Point2<f32>) -> GameResult {
+        if self.trail.len() >= 3 {
+            let trail = Mesh::new_line(
+                ctx,
+                self.trail.make_contiguous(),
+                2.0,
+                [0.1, 0.5, 0.1, 1.0].into(),
+            )?;
+            graphics::draw(ctx, &trail, (center,))?;
+        }
+
+        Ok(())
+    }
+
+    pub fn draw(&mut self, ctx: &mut Context, center: Point2<f32>, show_trail: bool) -> GameResult {
         let x_1 = self.p1.x();
         let y_1 = self.p1.y();
         let x_2 = x_1 + self.p2.x();
@@ -161,8 +177,7 @@ impl DoublePendulum {
 
         let line = Mesh::new_line(ctx, &[origin, p1, p2], 2.0, self.color)?;
 
-        let circle_1 = Mesh::new_circle(ctx, DrawMode::fill(), origin, 10.0, 2.0, self.color)?;
-        let circle_2 = Mesh::new_circle(
+        let circle_1 = Mesh::new_circle(
             ctx,
             DrawMode::fill(),
             p1,
@@ -170,7 +185,7 @@ impl DoublePendulum {
             2.0,
             self.color,
         )?;
-        let circle_3 = Mesh::new_circle(
+        let circle_2 = Mesh::new_circle(
             ctx,
             DrawMode::fill(),
             p2,
@@ -179,20 +194,12 @@ impl DoublePendulum {
             self.color,
         )?;
 
-        let center = Point2::new(CENTER.0, CENTER.1);
         graphics::draw(ctx, &line, (center,))?;
         graphics::draw(ctx, &circle_1, (center,))?;
         graphics::draw(ctx, &circle_2, (center,))?;
-        graphics::draw(ctx, &circle_3, (center,))?;
 
-        if self.trail.len() >= 3 {
-            let trail = Mesh::new_line(
-                ctx,
-                self.trail.make_contiguous(),
-                2.0,
-                [0.1, 0.5, 0.1, 1.0].into(),
-            )?;
-            graphics::draw(ctx, &trail, (center,))?;
+        if show_trail {
+            self.draw_trail(ctx, center)?;
         }
 
         Ok(())

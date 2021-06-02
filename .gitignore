@@ -1,1 +1,5 @@
 /target
+/optimization
+
+flamegraph.svg
+perf.data*
