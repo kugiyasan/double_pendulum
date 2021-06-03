@@ -10,6 +10,7 @@ use rand::Rng;
 use std::f32::consts::PI;
 
 const GRAVITY: f32 = 1.0;
+const TRAIL_LENGTH: usize = 100;
 
 // Useful resources:
 // https://en.wikipedia.org/wiki/Double_pendulum#Lagrangian
@@ -69,7 +70,7 @@ impl DoublePendulum {
         Self {
             p1: Pendulum::new(m1, length + radius, theta, 0.0),
             p2: Pendulum::new(m2, length - radius, theta, 0.0),
-            trail: VecDeque::new(),
+            trail: VecDeque::with_capacity(TRAIL_LENGTH),
             color: graphics::Color::new(r, g, b, 1.0),
         }
     }
@@ -138,10 +139,10 @@ impl DoublePendulum {
                 return;
             }
         }
-        self.trail.push_back(point);
-        if self.trail.len() > 100 {
+        if self.trail.len() > TRAIL_LENGTH {
             self.trail.pop_front();
         }
+        self.trail.push_back(point);
     }
 
     pub fn update(&mut self) -> GameResult {

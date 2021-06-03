@@ -16,7 +16,7 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 opt-level = 3
-debug = false
+debug = true
 # put debug = true to improve flamegraph information
 
 # flamegraph -o optimization/framegraph.svg target/release/double_pendulum
