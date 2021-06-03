@@ -1,4 +1,4 @@
-# double_pendulum
+# Double Pendulum
 An optimized double pendulum simulator written in Rust and ggez
 
 ## Installation
@@ -16,7 +16,11 @@ cargo run --release
 
 ## Controls
 All the controls are listed at the bottom of `src/mainstate.rs`
+
 C: Create a new `DoublePendulum`
+
 R: Reset the simulation back to one pendulum
+
 T: Toggle the trail
+
 Q: Quit the program
