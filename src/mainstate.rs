@@ -7,10 +7,7 @@ use ggez::Context;
 use ggez::GameResult;
 
 /// This value controls the number of physics updates per second
-///
-/// Changing this value will change the speed of the simulation,
-/// since the simulation is step-based and not time-dependant
-const DESIRED_FPS: u32 = 60;
+const DESIRED_FPS: u32 = 240;
 
 pub struct MainState {
     /// A vector of every double pendulum on the screen
@@ -27,7 +24,7 @@ impl MainState {
     pub fn new(size: usize, show_trail: bool, center: Point2<f32>) -> GameResult<Self> {
         let mut pendulums = Vec::with_capacity(size);
         for _ in 0..size {
-            pendulums.push(DoublePendulum::new());
+            pendulums.push(DoublePendulum::new(center.y));
         }
 
         let s = Self {
@@ -44,7 +41,7 @@ impl EventHandler for MainState {
         // Update every pendulum `DESIRED_FPS` number of times per second
         while timer::check_update_time(ctx, DESIRED_FPS) {
             for p in &mut self.pendulums {
-                p.update()?;
+                p.update(DESIRED_FPS)?;
             }
         }
         Ok(())
@@ -89,8 +86,8 @@ impl EventHandler for MainState {
         _repeat: bool,
     ) {
         match keycode {
-            KeyCode::C => self.pendulums.push(DoublePendulum::new()),
-            KeyCode::R => self.pendulums = vec![DoublePendulum::new()],
+            KeyCode::C => self.pendulums.push(DoublePendulum::new(self.center.y)),
+            KeyCode::R => self.pendulums = vec![DoublePendulum::new(self.center.y)],
             KeyCode::T => self.show_trail = !self.show_trail,
             KeyCode::Q => event::quit(ctx),
             _ => (),

@@ -66,9 +66,8 @@ impl DoublePendulum {
     /// Create a new DoublePendulum with a random initial state
     ///
     /// The double pendulum will spawn straight in the top half with no initial speed
-    pub fn new() -> Self {
-        // TODO make the length dependant of the screen size
-        let length = 200.0 / 2.0;
+    pub fn new(length: f32) -> Self {
+        let length = length / 2.0;
         let mut rng = rand::thread_rng();
 
         let m1 = rng.gen_range(2.0..5.0);
@@ -113,7 +112,7 @@ impl DoublePendulum {
         // Compute the first numerator
         let n1 = g * (2.0 * m1 + m2) * sin(t1);
         let n2 = m2 * g * sin(t1 - 2.0 * t2);
-        let n3 = -2.0 * sin(t1 - t2) * m2;
+        let n3 = 2.0 * sin(t1 - t2) * m2;
         let n4 = s2sq * l2 + s1sq * l1 * cos(t1 - t2);
         let num1 = -n1 - n2 - n3 * n4;
 
@@ -133,18 +132,18 @@ impl DoublePendulum {
     }
 
     /// Advance the simulation one step forward
-    fn forward(&mut self) {
+    fn forward(&mut self, desired_fps: u32) {
+        let step = 60.0 / desired_fps as f32;
         let (a1, a2) = self.compute_acceleration();
-
-        // TODO Should make this code time-dependant instead of step-based
+        
         // TODO Should make sure that we don't start spinning weirdly because of the lack of resistance
         // ? Maybe add a speed limit
         // ? Maybe make sure to keep the same mechanic energy through the whole simulation
         // ! Should make sure that theta and speed is a finite f32, or else ggez will crash
-        self.p1.speed += a1;
-        self.p2.speed += a2;
-        self.p1.theta += self.p1.speed;
-        self.p2.theta += self.p2.speed;
+        self.p1.speed += step * a1;
+        self.p2.speed += step * a2;
+        self.p1.theta += step * self.p1.speed;
+        self.p2.theta += step * self.p2.speed;
 
         // ? Might be useful to uncomment if the pendulum spins a million times
         // ? and f32 precision starts to be noticeable
@@ -186,8 +185,8 @@ impl DoublePendulum {
     }
 
     /// Update the double pendulum and its trail one step forward
-    pub fn update(&mut self) -> GameResult {
-        self.forward();
+    pub fn update(&mut self, desired_fps: u32) -> GameResult {
+        self.forward(desired_fps);
 
         self.update_trail();
         Ok(())

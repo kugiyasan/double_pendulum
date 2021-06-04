@@ -29,7 +29,7 @@ impl Config {
 }
 
 fn main() -> GameResult {
-    let window_setup = WindowSetup::default().title("Double Pendulum").vsync(false);
+    let window_setup = WindowSetup::default().title("Double Pendulum");
     let window_mode = WindowMode::default()
         .dimensions(INITIAL_SCREEN_SIZE.0, INITIAL_SCREEN_SIZE.1)
         .min_dimensions(200.0, 200.0)
