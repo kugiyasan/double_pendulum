@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 
 use ggez::graphics;
+use ggez::graphics::Canvas;
 use ggez::graphics::DrawMode;
 use ggez::graphics::Mesh;
-use ggez::nalgebra::Point2;
 use ggez::Context;
 use ggez::GameResult;
 use rand::Rng;
@@ -58,7 +58,7 @@ pub struct DoublePendulum {
     p1: Pendulum,
     /// The second pendulum attached at the tip of p1
     p2: Pendulum,
-    trail: VecDeque<Point2<f32>>,
+    trail: VecDeque<[f32; 2]>,
     color: graphics::Color,
 }
 
@@ -135,7 +135,7 @@ impl DoublePendulum {
     fn forward(&mut self, desired_fps: u32) {
         let step = 60.0 / desired_fps as f32;
         let (a1, a2) = self.compute_acceleration();
-        
+
         // TODO Should make sure that we don't start spinning weirdly because of the lack of resistance
         // ? Maybe add a speed limit
         // ? Maybe make sure to keep the same mechanic energy through the whole simulation
@@ -155,7 +155,7 @@ impl DoublePendulum {
     fn update_trail(&mut self) {
         let x = self.p1.x() + self.p2.x();
         let y = self.p1.y() + self.p2.y();
-        let point = Point2::new(x, y);
+        let point = [x, y];
 
         // Push the current trail position if it's not the same as the previous one
         if let Some(p) = self.trail.back() {
@@ -170,7 +170,12 @@ impl DoublePendulum {
         self.trail.push_back(point);
     }
 
-    fn draw_trail(&mut self, ctx: &mut Context, center: Point2<f32>) -> GameResult {
+    fn draw_trail(
+        &mut self,
+        ctx: &mut Context,
+        canvas: &mut Canvas,
+        center: [f32; 2],
+    ) -> GameResult {
         if self.trail.len() >= 3 {
             let trail = Mesh::new_line(
                 ctx,
@@ -178,7 +183,7 @@ impl DoublePendulum {
                 2.0,
                 [0.1, 0.5, 0.1, 1.0].into(),
             )?;
-            graphics::draw(ctx, &trail, (center,))?;
+            canvas.draw(&trail, center);
         }
 
         Ok(())
@@ -193,15 +198,21 @@ impl DoublePendulum {
     }
 
     /// Draw the two lines, the two circles and the trail if it needs to be drawn
-    pub fn draw(&mut self, ctx: &mut Context, center: Point2<f32>, show_trail: bool) -> GameResult {
+    pub fn draw(
+        &mut self,
+        ctx: &mut Context,
+        canvas: &mut Canvas,
+        center: [f32; 2],
+        show_trail: bool,
+    ) -> GameResult {
         let x_1 = self.p1.x();
         let y_1 = self.p1.y();
         let x_2 = x_1 + self.p2.x();
         let y_2 = y_1 + self.p2.y();
 
-        let origin = Point2::new(0.0, 0.0);
-        let p1 = Point2::new(x_1, y_1);
-        let p2 = Point2::new(x_2, y_2);
+        let origin = [0.0, 0.0];
+        let p1 = [x_1, y_1];
+        let p2 = [x_2, y_2];
 
         // The two lines can be drawn at once
         let line = Mesh::new_line(ctx, &[origin, p1, p2], 2.0, self.color)?;
@@ -223,12 +234,12 @@ impl DoublePendulum {
             self.color,
         )?;
 
-        graphics::draw(ctx, &line, (center,))?;
-        graphics::draw(ctx, &circle_1, (center,))?;
-        graphics::draw(ctx, &circle_2, (center,))?;
+        canvas.draw(&line, center);
+        canvas.draw(&circle_1, center);
+        canvas.draw(&circle_2, center);
 
         if show_trail {
-            self.draw_trail(ctx, center)?;
+            self.draw_trail(ctx, canvas, center)?;
         }
 
         Ok(())

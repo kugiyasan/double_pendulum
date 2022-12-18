@@ -3,7 +3,6 @@ mod pendulum;
 
 use ggez::conf::{WindowMode, WindowSetup};
 use ggez::event;
-use ggez::nalgebra::Point2;
 use ggez::GameResult;
 use mainstate::MainState;
 use std::env;
@@ -37,10 +36,10 @@ fn main() -> GameResult {
     let cb = ggez::ContextBuilder::new("double_pendulum", "kugiyasan")
         .window_setup(window_setup)
         .window_mode(window_mode);
-    let (ctx, event_loop) = &mut cb.build()?;
+    let (ctx, event_loop) = cb.build()?;
 
     let config = Config::new(env::args());
-    let center = Point2::new(INITIAL_SCREEN_SIZE.0 / 2.0, INITIAL_SCREEN_SIZE.1 / 2.0);
-    let state = &mut MainState::new(config.size, config.show_trail, center)?;
+    let center = [INITIAL_SCREEN_SIZE.0 / 2.0, INITIAL_SCREEN_SIZE.1 / 2.0];
+    let state = MainState::new(config.size, config.show_trail, center)?;
     event::run(ctx, event_loop, state)
 }

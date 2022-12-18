@@ -2,13 +2,13 @@
 name = "double_pendulum"
 version = "0.1.0"
 authors = ["kugiyasan <kugiyasan@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ggez = "0.5.1"
-rand = "0.8.3"
+ggez = "0.8.1"
+rand = "0.8.5"
 
 # RUSTFLAGS="-C target-cpu=native" cargo run --release
 [profile.release]
